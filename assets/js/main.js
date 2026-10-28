@@ -21,6 +21,29 @@
   $$("#menu a").forEach((a) => a.addEventListener("click", () => setMenu(false)));
   matchMedia("(min-width: 900px)").addEventListener("change", (e) => { if (e.matches) setMenu(false); });
 
+  /* ---------- avaliações do Google (widget Featurable) ----------
+     O script do widget só é carregado quando a seção está perto de aparecer. */
+  const secaoAvaliacoes = $("#avaliacoes");
+  const carregarWidget = () => {
+    const s = document.createElement("script");
+    s.src = secaoAvaliacoes.dataset.widgetScript;
+    s.defer = true;
+    s.charset = "UTF-8";
+    s.onload = () => setTimeout(() => window.ScrollTrigger && ScrollTrigger.refresh(), 800);
+    document.head.appendChild(s);
+    /* se nada aparecer em 8 s (bloqueio ou falha), mostra um aviso */
+    setTimeout(() => {
+      const w = $("[data-featurable-async]", secaoAvaliacoes);
+      if (w && !w.children.length) $(".avaliacoes__vazio", secaoAvaliacoes).hidden = false;
+    }, 8000);
+  };
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((e) => {
+      if (e[0].isIntersecting) { io.disconnect(); carregarWidget(); }
+    }, { rootMargin: "800px 0px" });
+    io.observe(secaoAvaliacoes);
+  } else carregarWidget();
+
   gsap.registerPlugin(ScrollTrigger);
   const mm = gsap.matchMedia();
   const scrub = (trigger, start, end) => ({ trigger, start, end, scrub: true });
@@ -90,24 +113,6 @@
       gsap.fromTo(img, { xPercent: -6 }, { xPercent: 6, ease: "none",
         scrollTrigger: { trigger: img.closest(".card"), containerAnimation: tween, start: "left right", end: "right left", scrub: true } })
     );
-  });
-
-  /* ---------- avaliações (computador): cartões abrem em leque ---------- */
-  mm.add("(min-width: 900px) and (prefers-reduced-motion: no-preference)", () => {
-    const lista = $(".avaliacoes__lista");
-    const cards = $$(".review");
-    const passo = () => cards[0].offsetWidth + parseFloat(getComputedStyle(lista).columnGap);
-    cards.forEach((c, i) =>
-      gsap.fromTo(c, { x: () => (1 - i) * passo() * 0.94, rotate: (i - 1) * 5, scale: 0.94 },
-        { x: 0, rotate: 0, scale: 1, ease: "power2.out",
-          scrollTrigger: { trigger: lista, start: "top 88%", end: "top 38%", scrub: 0.8, invalidateOnRefresh: true } })
-    );
-  });
-
-  /* ---------- avaliações (celular): entrada simples ---------- */
-  mm.add("(max-width: 899px) and (prefers-reduced-motion: no-preference)", () => {
-    gsap.from(".review", { y: 40, opacity: 0, duration: 0.9, stagger: 0.15, ease: "power3.out",
-      scrollTrigger: { trigger: ".avaliacoes__lista", start: "top 85%" } });
   });
 
   /* recalcula as posições depois de imagens e fontes carregarem */
